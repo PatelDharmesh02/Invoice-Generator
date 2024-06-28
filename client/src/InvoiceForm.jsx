@@ -1,5 +1,5 @@
 // src/InvoiceForm.js
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   Container,
   TextField,
@@ -16,8 +16,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import axios from "axios";
 import FileBase64 from "react-file-base64";
-
-const states = ["State1", "State2", "State3"]; // Replace with actual state options
+import { useNavigate } from "react-router-dom";
+import invoiceContext from "./utils/invoiceContext";
+import convertInWords from "./utils/convertInWords";
 
 const InvoiceSchema = Yup.object().shape({
   seller_details: Yup.object().shape({
@@ -60,12 +61,10 @@ const InvoiceSchema = Yup.object().shape({
   items: Yup.array().of(
     Yup.object().shape({
       description: Yup.string().required("Required"),
-      unit_price: Yup.number()
-        .required("Required")
-        .positive("Must be positive"),
-      quantity: Yup.number().required("Required").positive("Must be positive"),
+      unit_price: Yup.number().positive("Must be positive"),
+      quantity: Yup.number().positive("Must be positive"),
       discount: Yup.number().min(0, "Must be at least 0"),
-      tax_rate: Yup.number().required("Required").positive("Must be positive"),
+      tax_rate: Yup.number().positive("Must be positive"),
     })
   ),
   signature: Yup.string().required("Required"),
@@ -106,7 +105,7 @@ const InvoiceForm = () => {
     },
     invoice_details: {
       invoice_no: "",
-      invoice_code: "",
+      invoice_detail: "",
       invoice_date: "",
     },
     reverse_charge: "No",
@@ -120,17 +119,34 @@ const InvoiceForm = () => {
       },
     ],
     signature: "",
+    total_amount: 0,
+    tax_amount: 0,
+    amount_in_words: "",
   });
 
-  const handleSubmit = async (values) => {
-    // try {
-    //   const response = await axios.post("/api/invoice/create", values);
-    //   alert("Invoice created successfully");
-    // } catch (error) {
-    //   console.error("Error creating invoice:", error);
-    // }
+  const navigate = useNavigate();
 
-    console.log(values);
+  const { setInvoiceData } = useContext(invoiceContext);
+
+  const handleSubmit = async (values) => {
+    const totalAmount = values.items.reduce((accumulator, item) => {
+      const totalBeforeDiscount = item.unit_price * item.quantity;
+      const discountAmount = (totalBeforeDiscount * item.discount) / 100;
+      const totalAfterDiscount = totalBeforeDiscount - discountAmount;
+      return accumulator + totalAfterDiscount;
+    }, 0);
+    setInitialValues({ ...values, total_amount: totalAmount });
+    console.log(initialValues, "here");
+    const amountInWords = convertInWords(values.total_amount);
+    setInitialValues({ ...values, amount_in_words: amountInWords });
+    setInvoiceData(values);
+
+    navigate("/invoice");
+  };
+
+  const handleChange = (setFieldValue) => (e) => {
+    const { name, value } = e.target;
+    setFieldValue(name, value);
   };
 
   return (
@@ -144,14 +160,7 @@ const InvoiceForm = () => {
           validationSchema={InvoiceSchema}
           onSubmit={handleSubmit}
         >
-          {({
-            values,
-            handleChange,
-            handleSubmit,
-            setFieldValue,
-            errors,
-            touched,
-          }) => (
+          {({ values, handleSubmit, setFieldValue, errors, touched }) => (
             <form onSubmit={handleSubmit}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
@@ -164,7 +173,7 @@ const InvoiceForm = () => {
                       name={`seller_details.${key}`}
                       label={key.replace(/_/g, " ").toUpperCase()}
                       value={values.seller_details[key]}
-                      onChange={handleChange}
+                      onChange={handleChange(setFieldValue)}
                       error={
                         touched.seller_details?.[key] &&
                         Boolean(errors.seller_details?.[key])
@@ -185,7 +194,7 @@ const InvoiceForm = () => {
                     name={"placeOfSupply"}
                     label={"PLACE OF SUPPLY"}
                     value={values.placeOfSupply}
-                    onChange={handleChange}
+                    onChange={handleChange(setFieldValue)}
                     error={
                       touched.placeOfSupply && Boolean(errors.placeOfSupply)
                     }
@@ -202,7 +211,7 @@ const InvoiceForm = () => {
                       name={`billing_details.${key}`}
                       label={key.replace(/_/g, " ").toUpperCase()}
                       value={values.billing_details[key]}
-                      onChange={handleChange}
+                      onChange={handleChange(setFieldValue)}
                       error={
                         touched.billing_details?.[key] &&
                         Boolean(errors.billing_details?.[key])
@@ -224,7 +233,7 @@ const InvoiceForm = () => {
                       name={`shipping_details.${key}`}
                       label={key.replace(/_/g, " ").toUpperCase()}
                       value={values.shipping_details[key]}
-                      onChange={handleChange}
+                      onChange={handleChange(setFieldValue)}
                       error={
                         touched.shipping_details?.[key] &&
                         Boolean(errors.shipping_details?.[key])
@@ -245,7 +254,7 @@ const InvoiceForm = () => {
                     name={"placeOfDelivery"}
                     label={"PLACE OF DELIVERY"}
                     value={values.placeOfDelivery}
-                    onChange={handleChange}
+                    onChange={handleChange(setFieldValue)}
                     error={
                       touched.placeOfSupply && Boolean(errors.placeOfDelivery)
                     }
@@ -264,7 +273,7 @@ const InvoiceForm = () => {
                       name={`order_details.${key}`}
                       label={key.replace(/_/g, " ").toUpperCase()}
                       value={values.order_details[key]}
-                      onChange={handleChange}
+                      onChange={handleChange(setFieldValue)}
                       error={
                         touched.order_details?.[key] &&
                         Boolean(errors.order_details?.[key])
@@ -286,7 +295,7 @@ const InvoiceForm = () => {
                       name={`invoice_details.${key}`}
                       label={key.replace(/_/g, " ").toUpperCase()}
                       value={values.invoice_details[key]}
-                      onChange={handleChange}
+                      onChange={handleChange(setFieldValue)}
                       error={
                         touched.invoice_details?.[key] &&
                         Boolean(errors.invoice_details?.[key])
@@ -308,7 +317,7 @@ const InvoiceForm = () => {
                     name="reverse_charge"
                     label="Reverse Charge"
                     value={values.reverse_charge}
-                    onChange={handleChange}
+                    onChange={handleChange(setFieldValue)}
                     error={
                       touched.reverse_charge && Boolean(errors.reverse_charge)
                     }
@@ -340,7 +349,7 @@ const InvoiceForm = () => {
                                   name={`items.${index}.${key}`}
                                   label={key.replace(/_/g, " ").toUpperCase()}
                                   value={item[key]}
-                                  onChange={handleChange}
+                                  onChange={handleChange(setFieldValue)}
                                   error={
                                     touched.items?.[index]?.[key] &&
                                     Boolean(errors.items?.[index]?.[key])
@@ -392,7 +401,9 @@ const InvoiceForm = () => {
                 <Grid item xs={12}>
                   <FileBase64
                     multiple={false}
-                    onDone={({ base64 }) => setFieldValue("signature", base64)}
+                    onDone={({ base64 }) => {
+                      setFieldValue("signature", base64);
+                    }}
                   />
                   {values.signature && (
                     <img

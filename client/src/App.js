@@ -15,11 +15,11 @@ function App() {
         <Container>
           <Router>
             <Routes>
-              <Route path="/" element={<InvoiceForm />} />
               <Route
                 path="/invoice"
                 element={<Invoice data={{ ...invoiceData }} />}
               />
+              <Route path="*" element={<InvoiceForm />} />
             </Routes>
           </Router>
         </Container>

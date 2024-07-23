@@ -1,4 +1,3 @@
-// src/InvoiceForm.js
 import React, { useContext, useState } from "react";
 import {
   Container,
@@ -10,15 +9,13 @@ import {
   IconButton,
   MenuItem,
 } from "@mui/material";
-import { Field, FieldArray, Formik } from "formik";
+import { FieldArray, Formik } from "formik";
 import * as Yup from "yup";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import axios from "axios";
 import FileBase64 from "react-file-base64";
 import { useNavigate } from "react-router-dom";
 import invoiceContext from "./utils/invoiceContext";
-import convertInWords from "./utils/convertInWords";
 
 const InvoiceSchema = Yup.object().shape({
   seller_details: Yup.object().shape({
@@ -54,7 +51,7 @@ const InvoiceSchema = Yup.object().shape({
   }),
   invoice_details: Yup.object().shape({
     invoice_no: Yup.string().required("Required"),
-    invoice_code: Yup.string().required("Required"),
+    invoice_detail: Yup.string().required("Required"),
     invoice_date: Yup.string().required("Required"),
   }),
   reverse_charge: Yup.string().required("Required"),
@@ -65,13 +62,14 @@ const InvoiceSchema = Yup.object().shape({
       quantity: Yup.number().positive("Must be positive"),
       discount: Yup.number().min(0, "Must be at least 0"),
       tax_rate: Yup.number().positive("Must be positive"),
+      tax_type: Yup.string().required("Required"),
     })
   ),
-  signature: Yup.string().required("Required"),
+  signature: Yup.string(),
 });
 
 const InvoiceForm = () => {
-  const [initialValues, setInitialValues] = useState({
+  const [initialValues] = useState({
     seller_details: {
       name: "",
       address: "",
@@ -116,12 +114,10 @@ const InvoiceForm = () => {
         quantity: 0,
         discount: 0,
         tax_rate: 18,
+        tax_type: "",
       },
     ],
     signature: "",
-    total_amount: 0,
-    tax_amount: 0,
-    amount_in_words: "",
   });
 
   const navigate = useNavigate();
@@ -129,18 +125,7 @@ const InvoiceForm = () => {
   const { setInvoiceData } = useContext(invoiceContext);
 
   const handleSubmit = async (values) => {
-    const totalAmount = values.items.reduce((accumulator, item) => {
-      const totalBeforeDiscount = item.unit_price * item.quantity;
-      const discountAmount = (totalBeforeDiscount * item.discount) / 100;
-      const totalAfterDiscount = totalBeforeDiscount - discountAmount;
-      return accumulator + totalAfterDiscount;
-    }, 0);
-    setInitialValues({ ...values, total_amount: totalAmount });
-    console.log(initialValues, "here");
-    const amountInWords = convertInWords(values.total_amount);
-    setInitialValues({ ...values, amount_in_words: amountInWords });
     setInvoiceData(values);
-
     navigate("/invoice");
   };
 
@@ -333,7 +318,7 @@ const InvoiceForm = () => {
                 <Grid item xs={12}>
                   <FieldArray name="items">
                     {({ push, remove }) => (
-                      <React.Fragment>
+                      <>
                         {values.items.map((item, index) => (
                           <Grid
                             container
@@ -386,12 +371,13 @@ const InvoiceForm = () => {
                               quantity: 0,
                               discount: 0,
                               tax_rate: 18,
+                              tax_type: "",
                             })
                           }
                         >
                           Add Item
                         </Button>
-                      </React.Fragment>
+                      </>
                     )}
                   </FieldArray>
                 </Grid>
@@ -419,10 +405,10 @@ const InvoiceForm = () => {
                   sx={{ display: "flex", justifyContent: "center" }}
                 >
                   <Button
-                    type="submit"
                     variant="contained"
                     color="primary"
                     style={{ marginTop: "16px", marginBottom: "16px" }}
+                    onClick={handleSubmit}
                   >
                     Create Invoice
                   </Button>

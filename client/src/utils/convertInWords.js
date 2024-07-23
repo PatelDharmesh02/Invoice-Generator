@@ -41,7 +41,6 @@ function convertInWords(num) {
 
   let words = "";
 
-  // Function to convert a three-digit number to words
   const threeDigitToWords = (n) => {
     let str = "";
 
@@ -61,7 +60,6 @@ function convertInWords(num) {
     return str.trim();
   };
 
-  // Split the number into groups of thousands
   const splitIntoThousands = (n) => {
     let parts = [];
 

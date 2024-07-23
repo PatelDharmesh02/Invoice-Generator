@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState } from "react";
 import InvoiceForm from "./InvoiceForm";
 import { CssBaseline, Container } from "@mui/material";
@@ -7,9 +6,7 @@ import Invoice from "./Invoice";
 import InvoiceContext from "./utils/invoiceContext";
 
 function App() {
-  const [image, setImage] = useState();
   const [invoiceData, setInvoiceData] = useState({});
-  console.log(invoiceData);
 
   return (
     <React.Fragment>
